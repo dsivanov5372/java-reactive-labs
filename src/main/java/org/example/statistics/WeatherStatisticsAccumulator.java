@@ -13,8 +13,12 @@ final class WeatherStatisticsAccumulator {
     private double windSpeedSum;
 
     void add(WeatherForecast forecast) {
+        add(forecast, 0);
+    }
+
+    void add(WeatherForecast forecast, long delayMillis) {
+        double temperature = forecast.getTemperature(delayMillis);
         forecastCount++;
-        double temperature = forecast.getTemperature();
         temperatureSum += temperature;
         minTemperature = Math.min(minTemperature, temperature);
         maxTemperature = Math.max(maxTemperature, temperature);

@@ -6,6 +6,8 @@ import org.example.model.WeatherForecast;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -15,7 +17,20 @@ import java.util.stream.Collector;
 public final class WeatherStatisticsCollector implements Collector<
         WeatherForecast,
         Map<Location, WeatherStatisticsAccumulator>,
-        Map<Location, WeatherStatistics>> {
+        ConcurrentMap<Location, WeatherStatistics>> {
+
+    private final long delayMillis;
+
+    public WeatherStatisticsCollector() {
+        this(0);
+    }
+
+    public WeatherStatisticsCollector(long delayMillis) {
+        if (delayMillis < 0) {
+            throw new IllegalArgumentException("delayMillis must not be negative");
+        }
+        this.delayMillis = delayMillis;
+    }
 
     @Override
     public Supplier<Map<Location, WeatherStatisticsAccumulator>> supplier() {
@@ -26,7 +41,7 @@ public final class WeatherStatisticsCollector implements Collector<
     public BiConsumer<Map<Location, WeatherStatisticsAccumulator>, WeatherForecast> accumulator() {
         return (statistics, forecast) -> statistics
                 .computeIfAbsent(forecast.getLocation(), location -> new WeatherStatisticsAccumulator())
-                .add(forecast);
+                .add(forecast, delayMillis);
     }
 
     @Override
@@ -41,9 +56,9 @@ public final class WeatherStatisticsCollector implements Collector<
     }
 
     @Override
-    public Function<Map<Location, WeatherStatisticsAccumulator>, Map<Location, WeatherStatistics>> finisher() {
+    public Function<Map<Location, WeatherStatisticsAccumulator>, ConcurrentMap<Location, WeatherStatistics>> finisher() {
         return accumulators -> {
-            Map<Location, WeatherStatistics> statistics = new HashMap<>();
+            ConcurrentMap<Location, WeatherStatistics> statistics = new ConcurrentHashMap<>();
             accumulators.forEach((location, accumulator) -> statistics.put(location, accumulator.finish()));
             return statistics;
         };

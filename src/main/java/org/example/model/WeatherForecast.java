@@ -46,6 +46,16 @@ public final class WeatherForecast {
         return temperature;
     }
 
+    public double getTemperature(long delayMillis) {
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Temperature read was interrupted", e);
+        }
+        return temperature;
+    }
+
     public Location getLocation() {
         return location;
     }

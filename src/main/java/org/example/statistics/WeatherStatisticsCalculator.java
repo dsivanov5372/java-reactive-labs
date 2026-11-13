@@ -8,8 +8,10 @@ import java.util.HashMap;
 import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public final class WeatherStatisticsCalculator {
     private WeatherStatisticsCalculator() {
@@ -63,7 +65,23 @@ public final class WeatherStatisticsCalculator {
 
     public static Map<Location, WeatherStatistics> calculateWithCustomCollector(
             List<WeatherForecast> forecasts) {
-        return forecasts.stream().collect(new WeatherStatisticsCollector());
+        return calculateWithSequentialStream(forecasts, 0);
+    }
+
+    public static ConcurrentMap<Location, WeatherStatistics> calculateWithSequentialStream(
+            List<WeatherForecast> forecasts, long delayMillis) {
+        return forecasts.stream().collect(new WeatherStatisticsCollector(delayMillis));
+    }
+
+    public static ConcurrentMap<Location, WeatherStatistics> calculateWithParallelStream(
+            List<WeatherForecast> forecasts, long delayMillis) {
+        return forecasts.parallelStream().collect(new WeatherStatisticsCollector(delayMillis));
+    }
+
+    public static ConcurrentMap<Location, WeatherStatistics> calculateWithSpliterator(
+            List<WeatherForecast> forecasts, long delayMillis, int splitThreshold) {
+        return StreamSupport.stream(new WeatherForecastSpliterator(forecasts, splitThreshold), true)
+                .collect(new WeatherStatisticsCollector(delayMillis));
     }
 
     private record PressureAndWind(double averagePressureMmHg, double averageWindSpeed) {
